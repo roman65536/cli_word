@@ -231,9 +231,12 @@ wint_t c;
 		switch(r) {
 		case KEY_UP:	if(cur->prev !=0 ) {
 							cur=cur->prev;
-							v--;}
-					else
-						cur=cur;
+					if(v>0) 
+							v--;
+					 else
+						vis=vis->prev;
+
+						}
 						break; 
 		case KEY_DOWN:  if(cur->next !=0) {
 						       cur=cur->next; 
@@ -244,6 +247,24 @@ wint_t c;
 					else v++;
 					}
 					break;
+
+		case KEY_NPAGE:
+				{
+				int tmpi;
+				for(tmpi=22;((cur->next !=0 ) && (tmpi > 0)); tmpi--)
+				{
+				cur=cur->next;
+				vis=vis->next;
+				}
+				}
+				break;
+
+		case KEY_PPAGE:
+				{
+                                int tmpi;
+                                for(tmpi=22;((vis->prev !=0 ) && (tmpi > 0)); tmpi--, cur=cur->prev, vis=vis->prev);
+				}
+                                break;
 
 		case KEY_LEFT: (cur_x > 0)? cur_x--:cur_x; break;
 		case KEY_RIGHT: (cur_x< 80)? cur_x++:cur_x; break;
@@ -259,7 +280,7 @@ wint_t c;
 				  new->line=malloc(80);
 				  cur=new;
 				  cur_x=0;
-				  v++;
+					if(v<23)  v++;
 				}
 
 				break;
