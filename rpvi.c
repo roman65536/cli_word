@@ -155,7 +155,6 @@ struct doc *new;
 int y=0;
 int l=0;
 int x;
-int attr=A_NORMAL;
 
 erase();
 sc_header();
@@ -166,13 +165,16 @@ for(new=vis;((new!=0) && (l<24)) ;new=new->next)
 // mvaddnstr((y++)+1,1,new->line,80);
  for(x=0;x<strlen(new->line);x++)
 	{
+		int attr=A_NORMAL;
 		if ((new->ctl[x] & BOLD) == BOLD)  attr |= A_BOLD;
 		if ((new->ctl[x] & UNDR) == UNDR)  attr |= A_UNDERLINE;
 		if ((new->ctl[x] & ITAL) == ITAL)  attr |= A_ITALIC;
 		
-	           attrset(attr);		
+	          if (attr !=0 )
+			 attrset(attr);		
 		   mvaddch(y+1,x+1,new->line[x]);
-	           attrset(A_NORMAL);		
+	          if (attr !=0 )
+			 attrset(A_NORMAL);		
 		
 	}
  y++;
@@ -273,8 +275,8 @@ wint_t c;
 		case '\n':
 		case KEY_ENTER: {
 				  new=New_Line(&cur->prev,&cur);
-				  new->line=malloc(80);
-				  new->ctl=malloc(80);
+				  new->line=realloc(NULL,80);
+				  new->ctl=realloc(NULL,80);
 				  cur=new;
 				  cur_x=0;
 					if(v<23)  v++;
