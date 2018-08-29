@@ -261,8 +261,8 @@ wint_t c;
 				}
                                 break;
 
-		case KEY_LEFT: (cur_x > 0)? cur_x--:cur_x; break;
-		case KEY_RIGHT: (cur_x< 80)? cur_x++:cur_x; break;
+		case KEY_LEFT: (cur_x > 0)? cur_x--:cur_x;  if(ctrl !=0 )cur->ctl[cur_x-1]=ctrl; break;
+		case KEY_RIGHT: (cur_x< 80)? cur_x++:cur_x; if(ctrl !=0 )cur->ctl[cur_x-1]=ctrl; break;
  		case CTRL('D'):  {struct doc*tmp=(cur->next !=0)? cur->next:cur->prev;	Del_line(cur,&first,&last); cur	= tmp; v--; } break;
 		case KEY_BACKSPACE:
 		case CTRL('G'):  { if (cur_x >0) Del_Char(cur, cur_x--); } break;
@@ -276,7 +276,9 @@ wint_t c;
 		case KEY_ENTER: {
 				  new=New_Line(&cur->prev,&cur);
 				  new->line=realloc(NULL,80);
+				  memset(new->line,0,80);
 				  new->ctl=realloc(NULL,80);
+				  memset(new->ctl,0,80);
 				  cur=new;
 				  cur_x=0;
 					if(v<23)  v++;
