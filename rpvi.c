@@ -12,54 +12,18 @@
 
 
 
-#define INSERT(NEW, FIRST,LAST,NEXT,PREV) \
-do { \
-    if(FIRST == 0) FIRST=LAST=NEW; \
-    else { \
-    NEW->PREV=LAST; \
-    NEW->NEXT=LAST->NEXT; \
-    LAST->NEXT=NEW; \
-    if(NEW->NEXT !=NULL) NEW->NEXT->PREV=NEW; \
-    LAST=NEW; \
-    }\
-} while(0)
-
-
-#define INSERT_BEFORE(NEW, FIRST,LAST,NEXT,PREV) \
-do { \
-    if(FIRST == 0) FIRST=LAST=NEW; \
-    else { \
-    NEW->NEXT=FIRST; \
-    NEW->PREV=FIRST->PREV;\
-    FIRST->PREV=NEW; \
-    FIRST=NEW; \
-    }\
-} while(0)
-
-
-
-#define REMOVE(ELEM,FIRST,LAST,NEXT,PREV) \
-  do { \
-   if(ELEM==FIRST) { \
-        FIRST=ELEM->NEXT; \
-        if (FIRST == 0)  LAST=0; \
-         else ELEM->NEXT->PREV=0; \
-   } else { \
-     ELEM->PREV->NEXT=ELEM->NEXT; \
-     if (ELEM->NEXT ==0) LAST=ELEM->PREV; \
-     else ELEM->NEXT->PREV=ELEM->PREV; } \
-    } while(0)
-
-
-
 struct doc {
 	unsigned char *line;
+	unsigned char *ctl;
 	int line_width;
 	int line_nr;
 	struct doc * next;
 	struct doc * prev;
 	};
 
+#define BOLD 1<<0
+#define ITAL 1<<1
+#define UNDR 1<<2
 
 struct doc *first;
 struct doc *last;
@@ -69,6 +33,8 @@ int cur_y=0;
 int cur_x=0;
 int max_x;
 int max_y;
+int ctrl=0;
+
 
 struct doc * New_Line(struct doc ** ffirst, struct doc **llast )
 {
@@ -88,6 +54,7 @@ struct doc * New_Line(struct doc ** ffirst, struct doc **llast )
      
  new->line_nr= (new->prev != 0) ? new->prev->line_nr +1 :1 ;
  new->line=(unsigned char *) 0;
+ new->ctl=(unsigned char *) 0;
 
  
  for(upd=new->next;upd!=0;upd=upd->next)
@@ -109,6 +76,7 @@ void Del_line( struct doc *this,  struct doc ** ffirst, struct doc **llast)
  if( (*llast) == this) (*llast)=this->prev;
 
  if(this->line != 0) free(this->line);
+ if(this->ctl != 0) free(this->ctl);
 
  for(upd=this->next;upd!=0;upd=upd->next)
 	upd->line_nr=(this->prev !=0) ? upd->prev->line_nr +1 :1;
@@ -116,16 +84,20 @@ void Del_line( struct doc *this,  struct doc ** ffirst, struct doc **llast)
 
 }
 
-Add_Char(struct doc * this, char ch, int x)
+Add_Char(struct doc * this, char ch, char ctrl, int x)
 {
  int len=strlen(this->line);
  int to_move;
  if (len < x) to_move=len; else to_move=len-x;
  
-  if (to_move > 0) memmove(&this->line[x+1],&this->line[x],to_move);
+  if (to_move > 0) {
+		memmove(&this->line[x+1],&this->line[x],to_move);
+		memmove(&this->ctl[x+1],&this->ctl[x],to_move);
+		}	
  if (len < x) to_move=len; else to_move=x;
 	
  this->line[to_move]=ch;
+ this->ctl[to_move]=ctrl;
 
 }
 
@@ -136,7 +108,10 @@ Del_Char(struct doc * this, int x)
  int to_move;
  if (len < x) to_move=len; else to_move=len-x;
  if(to_move>0) 
+  {
     memmove(&this->line[x-1],&this->line[x],to_move);
+    memmove(&this->ctl[x-1],&this->ctl[x],to_move);
+  }
  this->line[len-1]=0;
 
 }
@@ -179,6 +154,8 @@ sc_display()
 struct doc *new;
 int y=0;
 int l=0;
+int x;
+int attr=A_NORMAL;
 
 erase();
 sc_header();
@@ -186,7 +163,19 @@ for(new=vis;((new!=0) && (l<24)) ;new=new->next)
 {
  if(new==cur) mvprintw((y+1),0,">");
         else        mvprintw((y+1),0," ");
- mvaddnstr((y++)+1,1,new->line,80);
+// mvaddnstr((y++)+1,1,new->line,80);
+ for(x=0;x<strlen(new->line);x++)
+	{
+		if ((new->ctl[x] & BOLD) == BOLD)  attr |= A_BOLD;
+		if ((new->ctl[x] & UNDR) == UNDR)  attr |= A_UNDERLINE;
+		if ((new->ctl[x] & ITAL) == ITAL)  attr |= A_ITALIC;
+		
+	           attrset(attr);		
+		   mvaddch(y+1,x+1,new->line[x]);
+	           attrset(A_NORMAL);		
+		
+	}
+ y++;
  l++;
  }
 refresh();
@@ -206,15 +195,19 @@ getmaxyx(stdscr,max_y,max_x);
 
 new=New_Line(&first,&last);
 new->line=malloc(80);
+new->ctl=malloc(80);
 sprintf(new->line, "Roman 1");
 new1=New_Line(&first,&last);
 new1->line=malloc(80);
+new1->ctl=malloc(80);
 sprintf(new1->line, "Roman 2");
 new=New_Line(&first,&last);
 new->line=malloc(80);
+new->ctl=malloc(80);
 sprintf(new->line, "Roman 3");
 new=New_Line(&new1->prev,&new1);
 new->line=malloc(80);
+new->ctl=malloc(80);
 sprintf(new->line, "Roman 4");
 
 cur=last;
@@ -272,12 +265,16 @@ wint_t c;
 		case KEY_BACKSPACE:
 		case CTRL('G'):  { if (cur_x >0) Del_Char(cur, cur_x--); } break;
 		case KEY_DC:	{ Del_Char(cur, ++cur_x); cur_x--; } break;
+		case CTRL('B'):  ctrl ^= BOLD; break;
+		case CTRL('U'):  ctrl ^= UNDR; break;
+		case CTRL('I'):  ctrl ^= ITAL; break;
 					
 		case 13:
 		case '\n':
 		case KEY_ENTER: {
 				  new=New_Line(&cur->prev,&cur);
 				  new->line=malloc(80);
+				  new->ctl=malloc(80);
 				  cur=new;
 				  cur_x=0;
 					if(v<23)  v++;
@@ -287,7 +284,7 @@ wint_t c;
  
 		
 		default: 	
-				Add_Char(cur,r,cur_x);
+				Add_Char(cur,r,ctrl,cur_x);
 				cur_x++;
 				break;
 		}
@@ -302,7 +299,7 @@ wint_t c;
 				exit(0);
 				}
 		sc_display();
-		mvprintw(24,0,"cursor: %d:%d [%s]    v:%d ", cur_x, cur_y,keyname(r),v);
+		mvprintw(24,0,"cursor: %d:%d [%s]    v:%d ctl:%x ", cur_x, cur_y,keyname(r),v,ctrl);
 		cur_x=(strlen(cur->line) < cur_x)? strlen(cur->line): cur_x;
 		move(v+1,cur_x+1);
 }
