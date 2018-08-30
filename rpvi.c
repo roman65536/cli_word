@@ -163,6 +163,7 @@ for(new=vis;((new!=0) && (l<24)) ;new=new->next)
  if(new==cur) mvprintw((y+1),0,">");
         else        mvprintw((y+1),0," ");
 // mvaddnstr((y++)+1,1,new->line,80);
+ if(new->line !=0 )
  for(x=0;x<strlen(new->line);x++)
 	{
 		int attr=A_NORMAL;
@@ -224,7 +225,7 @@ while(1)
 wint_t c;
 		int r = getch();
 		switch(r) {
-		case KEY_UP:	if(cur->prev !=0 ) {
+		case KEY_UP:	if((cur !=0 ) && (cur->prev !=0) ) {
 							cur=cur->prev;
 					if(v>0) 
 							v--;
@@ -233,7 +234,7 @@ wint_t c;
 
 						}
 						break; 
-		case KEY_DOWN:  if(cur->next !=0) {
+		case KEY_DOWN:  if((cur !=0 ) && (cur->next !=0)) {
 						       cur=cur->next; 
 						    
 					if(v>=22) { 
@@ -244,7 +245,7 @@ wint_t c;
 					break;
 
 		case KEY_NPAGE:
-				{
+				if (cur != 0 ){
 				int tmpi;
 				for(tmpi=22;((cur->next !=0 ) && (tmpi > 0)); tmpi--)
 				{
@@ -255,18 +256,22 @@ wint_t c;
 				break;
 
 		case KEY_PPAGE:
-				{
+				if (cur !=0 ){
                                 int tmpi;
                                 for(tmpi=22;((vis->prev !=0 ) && (tmpi > 0)); tmpi--, cur=cur->prev, vis=vis->prev);
 				}
                                 break;
 
-		case KEY_LEFT: (cur_x > 0)? cur_x--:cur_x;  if(ctrl !=0 )cur->ctl[cur_x-1]=ctrl; break;
-		case KEY_RIGHT: (cur_x< 80)? cur_x++:cur_x; if(ctrl !=0 )cur->ctl[cur_x-1]=ctrl; break;
- 		case CTRL('D'):  {struct doc*tmp=(cur->next !=0)? cur->next:cur->prev;	Del_line(cur,&first,&last); cur	= tmp; v--; } break;
+		case KEY_LEFT: if(cur !=0 ) { (cur_x > 0)? cur_x--:cur_x;  if(ctrl !=0 )cur->ctl[cur_x+1]=ctrl; } break;
+		case KEY_RIGHT: if(cur!=0 ) { (cur_x< 80)? cur_x++:cur_x; if(ctrl !=0 )cur->ctl[cur_x-1]=ctrl; } break;
+ 		case CTRL('D'):  if (cur !=0 ){
+					struct doc *tmp=(cur ==first )? cur->next:cur->prev;	
+					if (cur==vis) vis =vis->next;
+					Del_line(cur,&first,&last); 
+					cur	= tmp;  } break;
 		case KEY_BACKSPACE:
-		case CTRL('G'):  { if (cur_x >0) Del_Char(cur, cur_x--); } break;
-		case KEY_DC:	{ Del_Char(cur, ++cur_x); cur_x--; } break;
+		case CTRL('G'):  if (cur !=0 ){ if (cur_x >0) Del_Char(cur, cur_x--); } break;
+		case KEY_DC:	if (cur !=0 ) { Del_Char(cur, ++cur_x); cur_x--; } break;
 		case CTRL('B'):  ctrl ^= BOLD; break;
 		case CTRL('U'):  ctrl ^= UNDR; break;
 		case CTRL('I'):  ctrl ^= ITAL; break;
@@ -274,37 +279,64 @@ wint_t c;
 		case 13:
 		case '\n':
 		case KEY_ENTER: {
-				  new=New_Line(&cur->prev,&cur);
+				 if(first == 0 ) 
+					{
+					new=New_Line(&first,&last);
+					vis=new;
+					v=-1;
+					}
+				  else
+				  	new=New_Line(&cur->prev,&cur);
 				  new->line=realloc(NULL,80);
 				  memset(new->line,0,80);
 				  new->ctl=realloc(NULL,80);
 				  memset(new->ctl,0,80);
 				  cur=new;
+				
 				  cur_x=0;
-					if(v<23)  v++;
+					if(v>=22)  vis=vis->next; 
+					 else  v++; 
 				}
 
 				break;
  
 		
-		default: 	
+		default: 
+				if (cur == 0 ) {
+				 if(first == 0 ) 
+					new=New_Line(&first,&last);
+				  else
+				 	new=New_Line(&cur->prev,&cur);
+                                  new->line=realloc(NULL,80);
+                                  memset(new->line,0,80);
+                                  new->ctl=realloc(NULL,80);
+                                  memset(new->ctl,0,80);
+                                  vis =cur=new;
+                                  cur_x=0;
+			         } 	
 				Add_Char(cur,r,ctrl,cur_x);
 				cur_x++;
+				
 				break;
 		}
-		cur_y=cur->line_nr;	
+		cur_y=((cur !=0) && (cur->line_nr != 0))? cur->line_nr:1;	
 		if (r=='q' ) {
 				endwin();
 				exit(0);
 				}
+		/*
 		if(cur==0) {
 				fprintf(stderr,"something is very wrong");
 				endwin();
 				exit(0);
 				}
+		*/
 		sc_display();
 		mvprintw(24,0,"cursor: %d:%d [%s]    v:%d ctl:%x ", cur_x, cur_y,keyname(r),v,ctrl);
+		if(cur !=0 )
 		cur_x=(strlen(cur->line) < cur_x)? strlen(cur->line): cur_x;
+		else cur_x=1;
+
 		move(v+1,cur_x+1);
 }
 
