@@ -14,9 +14,11 @@
 
 struct doc {
 	unsigned char *line;
-	unsigned char *ctl;
+	unsigned long *ctl;
 	int line_width;
 	int line_nr;
+	int header;
+	int align;
 	struct doc * next;
 	struct doc * prev;
 	};
@@ -34,6 +36,7 @@ int cur_x=0;
 int max_x;
 int max_y;
 int ctrl=0;
+int parag=0;
 
 
 struct doc * New_Line(struct doc ** ffirst, struct doc **llast )
@@ -54,7 +57,7 @@ struct doc * New_Line(struct doc ** ffirst, struct doc **llast )
      
  new->line_nr= (new->prev != 0) ? new->prev->line_nr +1 :1 ;
  new->line=(unsigned char *) 0;
- new->ctl=(unsigned char *) 0;
+ new->ctl=(unsigned long *) 0;
 
  
  for(upd=new->next;upd!=0;upd=upd->next)
@@ -92,7 +95,7 @@ Add_Char(struct doc * this, char ch, char ctrl, int x)
  
   if (to_move > 0) {
 		memmove(&this->line[x+1],&this->line[x],to_move);
-		memmove(&this->ctl[x+1],&this->ctl[x],to_move);
+		memmove(&this->ctl[x+1],&this->ctl[x],to_move*sizeof(long));
 		}	
  if (len < x) to_move=len; else to_move=x;
 	
@@ -110,7 +113,7 @@ Del_Char(struct doc * this, int x)
  if(to_move>0) 
   {
     memmove(&this->line[x-1],&this->line[x],to_move);
-    memmove(&this->ctl[x-1],&this->ctl[x],to_move);
+    memmove(&this->ctl[x-1],&this->ctl[x],to_move*sizeof(long));
   }
  this->line[len-1]=0;
 
@@ -155,6 +158,8 @@ struct doc *new;
 int y=0;
 int l=0;
 int x;
+int off;
+int len;
 
 erase();
 sc_header();
@@ -164,7 +169,10 @@ for(new=vis;((new!=0) && (l<24)) ;new=new->next)
         else        mvprintw((y+1),0," ");
 // mvaddnstr((y++)+1,1,new->line,80);
  if(new->line !=0 )
- for(x=0;x<strlen(new->line);x++)
+ if(new->header <4) off=2;  else off=0;
+ len=strlen(new->line);
+ if(len>max_x) len-=off;
+ for(x=0;x<len;x++)
 	{
 		int attr=A_NORMAL;
 		if ((new->ctl[x] & BOLD) == BOLD)  attr |= A_BOLD;
@@ -173,7 +181,7 @@ for(new=vis;((new!=0) && (l<24)) ;new=new->next)
 		
 	          if (attr !=0 )
 			 attrset(attr);		
-		   mvaddch(y+1,x+1,new->line[x]);
+		   mvaddch(y+1,x+1+off,new->line[x]);
 	          if (attr !=0 )
 			 attrset(A_NORMAL);		
 		
@@ -192,25 +200,26 @@ main()
 struct doc *new;
 struct doc *new1;
 int v=0;
+int off=0;
 
 sc_init();
 getmaxyx(stdscr,max_y,max_x);
 
 new=New_Line(&first,&last);
 new->line=malloc(80);
-new->ctl=malloc(80);
+new->ctl=malloc(80*sizeof(long));
 sprintf(new->line, "Roman 1");
 new1=New_Line(&first,&last);
 new1->line=malloc(80);
-new1->ctl=malloc(80);
+new1->ctl=malloc(80*sizeof(long));
 sprintf(new1->line, "Roman 2");
 new=New_Line(&first,&last);
 new->line=malloc(80);
-new->ctl=malloc(80);
+new->ctl=malloc(80*sizeof(long));
 sprintf(new->line, "Roman 3");
 new=New_Line(&new1->prev,&new1);
 new->line=malloc(80);
-new->ctl=malloc(80);
+new->ctl=malloc(80*sizeof(long));
 sprintf(new->line, "Roman 4");
 
 cur=last;
@@ -275,6 +284,7 @@ wint_t c;
 		case CTRL('B'):  ctrl ^= BOLD; break;
 		case CTRL('U'):  ctrl ^= UNDR; break;
 		case CTRL('I'):  ctrl ^= ITAL; break;
+		case CTRL('P'):  {int ch; ch=getchar(); if((ch>='0' ) && (ch<='9')) parag=ch-'0'; if(cur!=0) cur->header=parag; } break;
 					
 		case 13:
 		case '\n':
@@ -289,9 +299,10 @@ wint_t c;
 				  	new=New_Line(&cur->prev,&cur);
 				  new->line=realloc(NULL,80);
 				  memset(new->line,0,80);
-				  new->ctl=realloc(NULL,80);
-				  memset(new->ctl,0,80);
+				  new->ctl=realloc(NULL,80*sizeof(long));
+				  memset(new->ctl,0,80*sizeof(long));
 				  cur=new;
+				  new->header=parag;
 				
 				  cur_x=0;
 					if(v>=22)  vis=vis->next; 
@@ -309,8 +320,8 @@ wint_t c;
 				 	new=New_Line(&cur->prev,&cur);
                                   new->line=realloc(NULL,80);
                                   memset(new->line,0,80);
-                                  new->ctl=realloc(NULL,80);
-                                  memset(new->ctl,0,80);
+                                  new->ctl=realloc(NULL,80*sizeof(long));
+                                  memset(new->ctl,0,80*sizeof(long));
                                   vis =cur=new;
                                   cur_x=0;
 			         } 	
@@ -331,13 +342,14 @@ wint_t c;
 				exit(0);
 				}
 		*/
+		if(parag<5) off=2; else off=0; 
 		sc_display();
-		mvprintw(24,0,"cursor: %d:%d [%s]    v:%d ctl:%x ", cur_x, cur_y,keyname(r),v,ctrl);
+		mvprintw(24,0,"cursor: %d:%d [%s]    v:%d ctl:%x head: %d  ", cur_x, cur_y,keyname(r),v,ctrl,parag);
 		if(cur !=0 )
 		cur_x=(strlen(cur->line) < cur_x)? strlen(cur->line): cur_x;
 		else cur_x=1;
 
-		move(v+1,cur_x+1);
+		move(v+1,cur_x+off+1);
 }
 
 //for(new=first;new!=0;new=new->next)
