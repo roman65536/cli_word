@@ -342,9 +342,9 @@ wint_t c;
 				exit(0);
 				}
 		*/
-		if(parag<5) off=2; else off=0; 
+		if(cur->header<5) off=2; else off=0; 
 		sc_display();
-		mvprintw(24,0,"cursor: %d:%d [%s]    v:%d ctl:%x head: %d  ", cur_x, cur_y,keyname(r),v,ctrl,parag);
+		mvprintw(24,0,"cursor: %d:%d [%s]    v:%d ctl:%x head: %d  ", cur_x, cur_y,keyname(r),v,ctrl,cur->header);
 		if(cur !=0 )
 		cur_x=(strlen(cur->line) < cur_x)? strlen(cur->line): cur_x;
 		else cur_x=1;
