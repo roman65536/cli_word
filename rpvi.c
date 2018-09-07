@@ -342,7 +342,10 @@ getmaxyx(stdscr,max_y,max_x);
 				exit(0);
 				}
 		*/
-		if(cur->header<5) off=2; else off=0; 
+		if (cur !=0 )
+			if(cur->header<5) off=2; else off=0; 
+		else 
+			if(parag<5) off=2; else off=0; 
 
 		sc_display();
 		mvprintw(max_y-1,0,"cursor: %d:%d [%s]    v:%d ctl:%x head: %d  max_y: %d ", cur_x, cur_y,keyname(r),v,ctrl,parag,max_y);
