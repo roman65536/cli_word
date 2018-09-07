@@ -138,7 +138,6 @@ sc_header()
 {
 int x;
 
- char head[]="....|....1....|....2....|....3....|....4....|....5....|....6....|....7....|....8....|....9....|....0....|....1....|....2....|....3....|";
  for(x=1;x<max_x-1;x++)
  {
    if ((x%10) ==0) mvprintw(0,(x),"%d",(x/10)%10);
@@ -163,7 +162,7 @@ int len;
 
 erase();
 sc_header();
-for(new=vis;((new!=0) && (l<24)) ;new=new->next)
+for(new=vis;((new!=0) && (l<=max_y-3)) ;new=new->next)
 {
  if(new==cur) mvprintw((y+1),0,">");
         else        mvprintw((y+1),0," ");
@@ -232,6 +231,7 @@ Del_line(new1,&first,&last);
 while(1)
 {
 wint_t c;
+getmaxyx(stdscr,max_y,max_x);
 		int r = getch();
 		switch(r) {
 		case KEY_UP:	if((cur !=0 ) && (cur->prev !=0) ) {
@@ -246,7 +246,7 @@ wint_t c;
 		case KEY_DOWN:  if((cur !=0 ) && (cur->next !=0)) {
 						       cur=cur->next; 
 						    
-					if(v>=22) { 
+					if(v>=max_y-3) { 
 					cur_y=22; 
 					vis=vis->next;  }
 					else v++;
@@ -256,7 +256,7 @@ wint_t c;
 		case KEY_NPAGE:
 				if (cur != 0 ){
 				int tmpi;
-				for(tmpi=22;((cur->next !=0 ) && (tmpi > 0)); tmpi--)
+				for(tmpi=max_y-3;((cur->next !=0 ) && (tmpi > 0)); tmpi--)
 				{
 				cur=cur->next;
 				vis=vis->next;
@@ -267,7 +267,7 @@ wint_t c;
 		case KEY_PPAGE:
 				if (cur !=0 ){
                                 int tmpi;
-                                for(tmpi=22;((vis->prev !=0 ) && (tmpi > 0)); tmpi--, cur=cur->prev, vis=vis->prev);
+                                for(tmpi=max_y-3;((vis->prev !=0 ) && (tmpi > 0)); tmpi--, cur=cur->prev, vis=vis->prev);
 				}
                                 break;
 
@@ -305,7 +305,7 @@ wint_t c;
 				  new->header=parag;
 				
 				  cur_x=0;
-					if(v>=22)  vis=vis->next; 
+					if(v>=max_y-3)  vis=vis->next; 
 					 else  v++; 
 				}
 
@@ -345,7 +345,7 @@ wint_t c;
 		if(cur->header<5) off=2; else off=0; 
 
 		sc_display();
-		mvprintw(24,0,"cursor: %d:%d [%s]    v:%d ctl:%x head: %d  ", cur_x, cur_y,keyname(r),v,ctrl,parag);
+		mvprintw(max_y-1,0,"cursor: %d:%d [%s]    v:%d ctl:%x head: %d  max_y: %d ", cur_x, cur_y,keyname(r),v,ctrl,parag,max_y);
 		if(cur !=0 )
 		cur_x=(strlen(cur->line) < cur_x)? strlen(cur->line): cur_x;
 		else cur_x=1;
