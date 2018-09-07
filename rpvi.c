@@ -310,6 +310,9 @@ getmaxyx(stdscr,max_y,max_x);
 				}
 
 				break;
+
+		case KEY_RESIZE:
+				break;
  
 		
 		default: 
