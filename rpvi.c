@@ -26,6 +26,8 @@ struct doc {
 #define BOLD 1<<0
 #define ITAL 1<<1
 #define UNDR 1<<2
+#define CENTER 1<<3
+#define RIGHT 1<<4
 
 struct doc *first;
 struct doc *last;
@@ -174,13 +176,15 @@ for(new=vis;((new!=0) && (l<=max_y-3)) ;new=new->next)
  for(x=0;x<len;x++)
 	{
 		int attr=A_NORMAL;
+		int just=0;
 		if ((new->ctl[x] & BOLD) == BOLD)  attr |= A_BOLD;
 		if ((new->ctl[x] & UNDR) == UNDR)  attr |= A_UNDERLINE;
 		if ((new->ctl[x] & ITAL) == ITAL)  attr |= A_ITALIC;
-		
+		if ((new->ctl[x] & CENTER) == CENTER) just=(max_x-off-2)/2-len/2;	
+		if ((new->ctl[x] & RIGHT) == RIGHT) just=max_x-off-2-len;	
 	          if (attr !=0 )
 			 attrset(attr);		
-		   mvaddch(y+1,x+1+off,new->line[x]);
+		   mvaddch(y+1,x+1+off+just,new->line[x]);
 	          if (attr !=0 )
 			 attrset(A_NORMAL);		
 		
@@ -200,6 +204,8 @@ struct doc *new;
 struct doc *new1;
 int v=0;
 int off=0;
+int just=0;
+int off_x=0;
 
 sc_init();
 getmaxyx(stdscr,max_y,max_x);
@@ -285,6 +291,14 @@ getmaxyx(stdscr,max_y,max_x);
 		case CTRL('U'):  ctrl ^= UNDR; break;
 		case CTRL('I'):  ctrl ^= ITAL; break;
 		case CTRL('P'):  {int ch; ch=getchar(); if((ch>='0' ) && (ch<='9')) parag=ch-'0'; if(cur!=0) cur->header=parag; } break;
+		case CTRL('O'):  {int ch; ch=getchar(); 
+					  switch(ch) 
+						{
+							case 'r': just=RIGHT; break;
+							case 'c': just=CENTER; break;
+							case 'l': just=0;  break;
+						 }
+				 } break;
 					
 		case 13:
 		case '\n':
@@ -328,7 +342,7 @@ getmaxyx(stdscr,max_y,max_x);
                                   vis =cur=new;
                                   cur_x=0;
 			         } 	
-				Add_Char(cur,r,ctrl,cur_x);
+				Add_Char(cur,r,ctrl|just,cur_x);
 				cur_x++;
 				
 				break;
@@ -351,12 +365,17 @@ getmaxyx(stdscr,max_y,max_x);
 			if(parag<5) off=2; else off=0; 
 
 		sc_display();
-		mvprintw(max_y-1,0,"cursor: %d:%d [%s]    v:%d ctl:%x head: %d  max_y: %d ", cur_x, cur_y,keyname(r),v,ctrl,parag,max_y);
+		off_x=0;
 		if(cur !=0 )
-		cur_x=(strlen(cur->line) < cur_x)? strlen(cur->line): cur_x;
+		{
+			cur_x=(strlen(cur->line) < cur_x)? strlen(cur->line): cur_x;
+			if(just == RIGHT) off_x=max_x-off-2-strlen(cur->line);
+			if(just == CENTER) off_x=(max_x-off-2)/2-strlen(cur->line)/2;
+		}
 		else cur_x=1;
+		mvprintw(max_y-1,0,"cursor: %d:%d [%s]    v:%d ctl:%x head: %d  max_y: %d  just: %d X:%d", cur_x, cur_y,keyname(r),v,ctrl,parag,max_y,just, cur_x+off+off_x+1);
 
-		move(v+1,cur_x+off+1);
+		move(v+1,cur_x+off+off_x+1);
 }
 
 //for(new=first;new!=0;new=new->next)
