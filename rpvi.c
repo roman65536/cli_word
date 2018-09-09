@@ -13,12 +13,12 @@
 
 
 struct doc {
-	unsigned char *line;
-	unsigned long *ctl;
+	unsigned char *line;      /* Character in the line */
+	unsigned long *ctl;	  /* Controls for this line */
 	int line_width;
 	int line_nr;
-	int header;
-	int align;
+	int header;		  /* Paragraph infos */
+	int align;		  /* Aligment of this line */
 	struct doc * next;
 	struct doc * prev;
 	};
@@ -28,6 +28,10 @@ struct doc {
 #define UNDR 1<<2
 #define CENTER 1<<3
 #define RIGHT 1<<4
+
+#define HEAD 1<<0
+#define END 1<<1
+#define PAGE 1<<1
 
 struct doc *first;
 struct doc *last;
@@ -170,7 +174,7 @@ for(new=vis;((new!=0) && (l<=max_y-3)) ;new=new->next)
         else        mvprintw((y+1),0," ");
 // mvaddnstr((y++)+1,1,new->line,80);
  if(new->line !=0 )
- if(new->header <4) off=2;  else off=0;
+ if(new->header <4) off=2;  else { off=0; } 
  len=strlen(new->line);
  if(len>max_x) len-=off;
  for(x=0;x<len;x++)
@@ -180,8 +184,8 @@ for(new=vis;((new!=0) && (l<=max_y-3)) ;new=new->next)
 		if ((new->ctl[x] & BOLD) == BOLD)  attr |= A_BOLD;
 		if ((new->ctl[x] & UNDR) == UNDR)  attr |= A_UNDERLINE;
 		if ((new->ctl[x] & ITAL) == ITAL)  attr |= A_ITALIC;
-		if ((new->ctl[x] & CENTER) == CENTER) just=(max_x-off-2)/2-len/2;	
-		if ((new->ctl[x] & RIGHT) == RIGHT) just=max_x-off-2-len;	
+		if ((new->align & CENTER) == CENTER) just=(max_x-off-2)/2-len/2;	
+		if ((new->align & RIGHT) == RIGHT) just=max_x-off-2-len;	
 	          if (attr !=0 )
 			 attrset(attr);		
 		   mvaddch(y+1,x+1+off+just,new->line[x]);
@@ -189,8 +193,7 @@ for(new=vis;((new!=0) && (l<=max_y-3)) ;new=new->next)
 			 attrset(A_NORMAL);		
 		
 	}
- y++;
- l++;
+ if (new->header <4) {y++; l++; } else { y+=2; l+=2;}
  }
 refresh();
 
@@ -202,7 +205,7 @@ main()
 
 struct doc *new;
 struct doc *new1;
-int v=0;
+int v=1;
 int off=0;
 int just=0;
 int off_x=0;
@@ -213,26 +216,39 @@ getmaxyx(stdscr,max_y,max_x);
 new=New_Line(&first,&last);
 new->line=malloc(80);
 new->ctl=malloc(80*sizeof(long));
-sprintf(new->line, "Roman 1");
+new->align=CENTER;
+sprintf(new->line, "[HEAD]");
+
+new=New_Line(&first,&last);
+new->line=malloc(80);
+new->ctl=malloc(80*sizeof(long));
+new->align=CENTER;
+sprintf(new->line, "[END DOCUMENT]");
+
 new1=New_Line(&first,&last);
 new1->line=malloc(80);
 new1->ctl=malloc(80*sizeof(long));
 sprintf(new1->line, "Roman 2");
+
 new=New_Line(&first,&last);
 new->line=malloc(80);
 new->ctl=malloc(80*sizeof(long));
 sprintf(new->line, "Roman 3");
+
 new=New_Line(&new1->prev,&new1);
 new->line=malloc(80);
 new->ctl=malloc(80*sizeof(long));
 sprintf(new->line, "Roman 4");
 
+
 cur=last;
 vis=first;
 sc_display();
 
-Del_line(new1,&first,&last);
+//Del_line(new1,&first,&last);
 
+
+cur=first->next;
 
 while(1)
 {
@@ -242,20 +258,22 @@ getmaxyx(stdscr,max_y,max_x);
 		switch(r) {
 		case KEY_UP:	if((cur !=0 ) && (cur->prev !=0) ) {
 							cur=cur->prev;
+						if(cur->header >=4) v--;
 					if(v>0) 
-							v--;
+						 v--; 
 					 else
 						vis=vis->prev;
 
 						}
 						break; 
-		case KEY_DOWN:  if((cur !=0 ) && (cur->next !=0)) {
+		case KEY_DOWN:  if((cur !=0 ) && (cur->next !=0) ) {
+							if (cur->header >= 4) v++;
 						       cur=cur->next; 
 						    
 					if(v>=max_y-3) { 
-					cur_y=22; 
+					cur_y=max_y-3; 
 					vis=vis->next;  }
-					else v++;
+					else  v++; 
 					}
 					break;
 
@@ -283,7 +301,8 @@ getmaxyx(stdscr,max_y,max_x);
 					struct doc *tmp=(cur ==first )? cur->next:cur->prev;	
 					if (cur==vis) vis =vis->next;
 					Del_line(cur,&first,&last); 
-					cur	= tmp;  } break;
+					cur	= tmp; v--;  } break;
+
 		case KEY_BACKSPACE:
 		case CTRL('G'):  if (cur !=0 ){ if (cur_x >0) Del_Char(cur, cur_x--); } break;
 		case KEY_DC:	if (cur !=0 ) { Del_Char(cur, ++cur_x); cur_x--; } break;
@@ -298,6 +317,7 @@ getmaxyx(stdscr,max_y,max_x);
 							case 'c': just=CENTER; break;
 							case 'l': just=0;  break;
 						 }
+				  if(cur !=0 ) cur->align=just;
 				 } break;
 					
 		case 13:
@@ -315,8 +335,10 @@ getmaxyx(stdscr,max_y,max_x);
 				  memset(new->line,0,80);
 				  new->ctl=realloc(NULL,80*sizeof(long));
 				  memset(new->ctl,0,80*sizeof(long));
+				  if (cur->header >= 4) v++;
 				  cur=new;
 				  new->header=parag;
+				  new->align=just;
 				
 				  cur_x=0;
 					if(v>=max_y-3)  vis=vis->next; 
@@ -342,7 +364,8 @@ getmaxyx(stdscr,max_y,max_x);
                                   vis =cur=new;
                                   cur_x=0;
 			         } 	
-				Add_Char(cur,r,ctrl|just,cur_x);
+				Add_Char(cur,r,ctrl,cur_x);
+				cur->align=just;
 				cur_x++;
 				
 				break;
@@ -369,6 +392,7 @@ getmaxyx(stdscr,max_y,max_x);
 		if(cur !=0 )
 		{
 			cur_x=(strlen(cur->line) < cur_x)? strlen(cur->line): cur_x;
+			just=cur->align;
 			if(just == RIGHT) off_x=max_x-off-2-strlen(cur->line);
 			if(just == CENTER) off_x=(max_x-off-2)/2-strlen(cur->line)/2;
 		}
