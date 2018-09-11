@@ -258,31 +258,42 @@ getmaxyx(stdscr,max_y,max_x);
 		switch(r) {
 		case KEY_UP:	if((cur !=0 ) && (cur->prev !=0) ) {
 							cur=cur->prev;
-						if(cur->header >=4) v--;
 					if(v>0) 
+						{
+						 if(cur->header >=4) v--;
 						 v--; 
+						}
 					 else
-						vis=vis->prev;
+						{
+						if ((cur->header >= 4) && (vis->prev !=0 )) vis=vis->prev;
+						if(vis->prev !=0 ) vis=vis->prev;
+						}
 
 						}
 						break; 
 		case KEY_DOWN:  if((cur !=0 ) && (cur->next !=0) ) {
-							if (cur->header >= 4) v++;
+					int off_s=1;
+						if (cur->header >= 4) off_s++;
 						       cur=cur->next; 
 						    
-					if(v>=max_y-3) { 
+					if(v>=max_y-(off_s+2)) { 
 					cur_y=max_y-3; 
-					vis=vis->next;  }
-					else  v++; 
+					if ((off_s == 2) && (vis->next !=0 )) vis=vis->next;
+					if(vis->next !=0 )vis=vis->next;  }
+					else  
+						{
+						v+=off_s;
+						}
 					}
 					break;
 
 		case KEY_NPAGE:
 				if (cur != 0 ){
 				int tmpi;
-				for(tmpi=max_y-3;((cur->next !=0 ) && (tmpi > 0)); tmpi--)
+				for(tmpi=(max_y-3) /2 ;((cur->next !=0 ) && (vis->next !=0 ) && (tmpi > 0)); tmpi--)
 				{
 				cur=cur->next;
+				if (cur->header >= 4) vis=vis->next;
 				vis=vis->next;
 				}
 				}
@@ -291,7 +302,7 @@ getmaxyx(stdscr,max_y,max_x);
 		case KEY_PPAGE:
 				if (cur !=0 ){
                                 int tmpi;
-                                for(tmpi=max_y-3;((vis->prev !=0 ) && (tmpi > 0)); tmpi--, cur=cur->prev, vis=vis->prev);
+                                for(tmpi=(max_y-3) /2 ;((vis->prev !=0 ) && (cur->prev !=0 ) && (tmpi > 0)); tmpi--, cur=cur->prev, vis=vis->prev) if ((cur !=0 ) &&  (cur->header >= 4)) vis=vis->prev ;
 				}
                                 break;
 
@@ -299,9 +310,11 @@ getmaxyx(stdscr,max_y,max_x);
 		case KEY_RIGHT: if(cur!=0 ) { (cur_x< 80)? cur_x++:cur_x; if(ctrl !=0 )cur->ctl[cur_x-1]=ctrl; } break;
  		case CTRL('D'):  if (cur !=0 ){
 					struct doc *tmp=(cur ==first )? cur->next:cur->prev;	
+					if(cur != first) v--;  
 					if (cur==vis) vis =vis->next;
 					Del_line(cur,&first,&last); 
-					cur	= tmp; v--;  } break;
+					cur	= tmp; 
+					  } break;
 
 		case KEY_BACKSPACE:
 		case CTRL('G'):  if (cur !=0 ){ if (cur_x >0) Del_Char(cur, cur_x--); } break;
@@ -323,6 +336,7 @@ getmaxyx(stdscr,max_y,max_x);
 		case 13:
 		case '\n':
 		case KEY_ENTER: {
+				 int off_s=1;
 				 if(first == 0 ) 
 					{
 					new=New_Line(&first,&last);
@@ -335,14 +349,21 @@ getmaxyx(stdscr,max_y,max_x);
 				  memset(new->line,0,80);
 				  new->ctl=realloc(NULL,80*sizeof(long));
 				  memset(new->ctl,0,80*sizeof(long));
-				  if (cur->header >= 4) v++;
+				  if((cur !=0 ) &&  (cur->header >= 4)) off_s++;
 				  cur=new;
 				  new->header=parag;
 				  new->align=just;
 				
 				  cur_x=0;
-					if(v>=max_y-3)  vis=vis->next; 
-					 else  v++; 
+					if(v>=max_y-(off_s+2)) 
+						{
+				  		if ((cur !=0 ) &&  (cur->header >= 4)) vis=vis->next;
+						 vis=vis->next; 
+						}
+					 else
+						{
+							  v+=off_s; 
+						}
 				}
 
 				break;
