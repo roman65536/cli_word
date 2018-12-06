@@ -200,7 +200,31 @@ refresh();
 
 }
 
-main()
+
+
+readfile(char *name )
+{
+	FILE *fp;
+        char *line = NULL;
+        size_t len = 0;
+        ssize_t read;
+	struct doc *new;
+
+ fp=fopen(name,"r");
+ while ((read = getline(&line, &len, fp)) != -1) {
+               printf("Retrieved line of length %zu :\n", read);
+                printf("%s", line);
+	   new=New_Line(&cur->prev,&cur);
+	   new->line=line;
+	   new->ctl=malloc(read*sizeof(long));
+	   line=0;
+	   cur=new;
+           }
+
+
+}
+
+main(int argn, char *argc[])
 {
 
 struct doc *new;
@@ -212,6 +236,8 @@ int off_x=0;
 
 sc_init();
 getmaxyx(stdscr,max_y,max_x);
+ 
+
 
 new=New_Line(&first,&last);
 new->line=malloc(80);
@@ -225,6 +251,7 @@ new->ctl=malloc(80*sizeof(long));
 new->align=CENTER;
 sprintf(new->line, "[END DOCUMENT]");
 
+/*
 new1=New_Line(&first,&last);
 new1->line=malloc(80);
 new1->ctl=malloc(80*sizeof(long));
@@ -239,10 +266,12 @@ new=New_Line(&new1->prev,&new1);
 new->line=malloc(80);
 new->ctl=malloc(80*sizeof(long));
 sprintf(new->line, "Roman 4");
+*/
 
 
 cur=last;
 vis=first;
+if (argn == 2 ) readfile(argc[1]);
 sc_display();
 
 //Del_line(new1,&first,&last);
