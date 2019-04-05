@@ -148,7 +148,7 @@ int x;
  {
    if ((x%10) ==0) mvprintw(0,(x),"%d",(x/10)%10);
    else
-   if ((x%5) ==0 ) mvaddnstr(0,(x),"|",1);  
+   if ((x%5) ==0 ) mvaddnstr(0,(x),":",1);  
    else 
     mvaddnstr(0,(x),".",1);  
  }
@@ -224,11 +224,23 @@ readfile(char *name )
 
 }
 
+struct doc * add_eof(struct doc *ffirst, struct doc *llast )
+{
+    struct doc *eof;
+    eof=New_Line(&ffirst,&llast);
+eof->line=malloc(80);
+eof->ctl=malloc(80*sizeof(long));
+eof->align=CENTER;
+sprintf(eof->line, "[END DOCUMENT]");
+ return eof;
+}
+
 main(int argn, char *argc[])
 {
 
 struct doc *new;
 struct doc *new1;
+struct doc *eof;
 int v=1;
 int off=0;
 int just=0;
@@ -245,11 +257,7 @@ new->ctl=malloc(80*sizeof(long));
 new->align=CENTER;
 sprintf(new->line, "[HEAD]");
 
-new=New_Line(&first,&last);
-new->line=malloc(80);
-new->ctl=malloc(80*sizeof(long));
-new->align=CENTER;
-sprintf(new->line, "[END DOCUMENT]");
+eof= add_eof(first,last);
 
 /*
 new1=New_Line(&first,&last);
@@ -366,6 +374,8 @@ getmaxyx(stdscr,max_y,max_x);
 		case '\n':
 		case KEY_ENTER: {
 				 int off_s=1;
+				 if(cur==eof) cur=cur->prev;
+				 Del_line(eof,&first,&last);
 				 if(first == 0 ) 
 					{
 					new=New_Line(&first,&last);
@@ -395,6 +405,7 @@ getmaxyx(stdscr,max_y,max_x);
 						}
 				}
 
+		                 eof=add_eof(last,last);
 				break;
 
 		case KEY_RESIZE:
@@ -421,7 +432,7 @@ getmaxyx(stdscr,max_y,max_x);
 				break;
 		}
 		cur_y=((cur !=0) && (cur->line_nr != 0))? cur->line_nr:1;	
-		if (r=='q' ) {
+		if (r==CTRL('q') ) {
 				endwin();
 				exit(0);
 				}
