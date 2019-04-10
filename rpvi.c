@@ -82,7 +82,7 @@ void Del_line( struct doc *this,  struct doc ** ffirst, struct doc **llast)
  if (this->next !=0) this->next->prev=this->prev;
 	else (*llast)=this->prev;
  if( (*ffirst) == this) (*ffirst)=this->next;
- if( (*llast) == this) (*llast)=this->prev;
+ if( (*llast) == this) if ((*llast)->next !=0 ) (*llast)=(*llast)->next; else (*llast)=this->prev;
 
  if(this->line != 0) free(this->line);
  if(this->ctl != 0) free(this->ctl);
@@ -226,14 +226,24 @@ readfile(char *name )
 
 struct doc * add_eof(struct doc *ffirst, struct doc *llast )
 {
-    struct doc *eof;
-    eof=New_Line(&ffirst,&llast);
+  struct doc *eof,*last;
+  eof=malloc(sizeof(struct doc));
 eof->line=malloc(80);
 eof->ctl=malloc(80*sizeof(long));
 eof->align=CENTER;
 sprintf(eof->line, "[END DOCUMENT]");
+
+ last=ffirst;
+ while (last->next != 0) last=last->next;
+ last->next=eof;
+ eof->prev=last;
+ last=eof;
+
  return eof;
 }
+
+
+
 
 main(int argn, char *argc[])
 {
@@ -374,8 +384,6 @@ getmaxyx(stdscr,max_y,max_x);
 		case '\n':
 		case KEY_ENTER: {
 				 int off_s=1;
-				 if(cur==eof) cur=cur->prev;
-				 Del_line(eof,&first,&last);
 				 if(first == 0 ) 
 					{
 					new=New_Line(&first,&last);
@@ -404,6 +412,8 @@ getmaxyx(stdscr,max_y,max_x);
 							  v+=off_s; 
 						}
 				}
+				 if(cur==eof) cur=cur->prev;
+				 Del_line(eof,&first,&last);
 
 		                 eof=add_eof(last,last);
 				break;

@@ -1,7 +1,7 @@
 
 
 CC = gcc -g  
-LIBS=-lncurses 
+LIBS=-lncursesw
 SRC= rpvi.c
 OBJ= rpvi.o
 
