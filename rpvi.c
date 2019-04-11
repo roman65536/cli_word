@@ -226,17 +226,17 @@ readfile(char *name )
 
 struct doc * add_eof(struct doc *ffirst, struct doc *llast )
 {
-  struct doc *eof,*last;
+  struct doc *eof,*l_last;
   eof=malloc(sizeof(struct doc));
 eof->line=malloc(80);
 eof->ctl=malloc(80*sizeof(long));
 eof->align=CENTER;
 sprintf(eof->line, "[END DOCUMENT]");
 
- last=ffirst;
- while (last->next != 0) last=last->next;
- last->next=eof;
- eof->prev=last;
+ l_last=first;
+ while (l_last->next != 0) l_last=l_last->next;
+ l_last->next=eof;
+ eof->prev=l_last;
  last=eof;
 
  return eof;
