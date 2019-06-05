@@ -12,16 +12,26 @@
 
 
 
-struct doc {
+
+struct line {
 	unsigned char *line;      /* Character in the line */
 	unsigned long *ctl;	  /* Controls for this line */
 	int line_width;
 	int line_nr;
 	int header;		  /* Paragraph infos */
 	int align;		  /* Aligment of this line */
-	struct doc * next;
-	struct doc * prev;
+	struct line * next;
+	struct line * prev;
 	};
+
+
+struct partition {
+  	struct line *first;
+	struct line *last;
+	
+	struct partition *next;
+	struct partition *prev;
+};
 
 #define BOLD 1<<0
 #define ITAL 1<<1
@@ -33,10 +43,10 @@ struct doc {
 #define END 1<<1
 #define PAGE 1<<1
 
-struct doc *first;
-struct doc *last;
-struct doc *cur;
-struct doc *vis;
+struct line *first;
+struct line *last;
+struct line *cur;
+struct line *vis;
 int cur_y=0;
 int cur_x=0;
 int max_x;
@@ -45,11 +55,11 @@ int ctrl=0;
 int parag=0;
 
 
-struct doc * New_Line(struct doc ** ffirst, struct doc **llast )
+struct line * New_Line(struct line ** ffirst, struct line **llast )
 {
- struct doc *new;
- struct doc *upd;
- new=(struct doc *) malloc(sizeof(struct doc));
+ struct line *new;
+ struct line *upd;
+ new=(struct line *) malloc(sizeof(struct line));
      if((*ffirst == NULL) && (*llast == NULL)) *ffirst=*llast=new;
 			
      else {
@@ -73,9 +83,9 @@ struct doc * New_Line(struct doc ** ffirst, struct doc **llast )
 } 
 
 
-void Del_line( struct doc *this,  struct doc ** ffirst, struct doc **llast)
+void Del_line( struct line *this,  struct line ** ffirst, struct line **llast)
 {
- struct doc *upd;
+ struct line *upd;
  
  if (this->prev !=0 )this->prev->next=this->next;
 	else (*ffirst)=this->next;
@@ -93,7 +103,7 @@ void Del_line( struct doc *this,  struct doc ** ffirst, struct doc **llast)
 
 }
 
-Add_Char(struct doc * this, char ch, char ctrl, int x)
+Add_Char(struct line * this, char ch, char ctrl, int x)
 {
  int len=strlen(this->line);
  int to_move;
@@ -111,7 +121,7 @@ Add_Char(struct doc * this, char ch, char ctrl, int x)
 }
 
 
-Del_Char(struct doc * this, int x)
+Del_Char(struct line * this, int x)
 {
  int len=strlen(this->line);
  int to_move;
@@ -159,7 +169,7 @@ int x;
 
 sc_display()
 {
-struct doc *new;
+struct line *new;
 int y=0;
 int l=0;
 int x;
@@ -208,7 +218,7 @@ readfile(char *name )
         char *line = NULL;
         size_t len = 0;
         ssize_t read;
-	struct doc *new;
+	struct line *new;
 
  fp=fopen(name,"r");
  while ((read = getline(&line, &len, fp)) != -1) {
@@ -224,13 +234,15 @@ readfile(char *name )
 
 }
 
-struct doc * add_eof(struct doc *ffirst, struct doc *llast )
+struct line * add_eof(struct line *ffirst, struct line *llast )
 {
-  struct doc *eof,*l_last;
-  eof=malloc(sizeof(struct doc));
+  struct line *eof,*l_last;
+  eof=malloc(sizeof(struct line));
 eof->line=malloc(80);
 eof->ctl=malloc(80*sizeof(long));
 eof->align=CENTER;
+eof->next=0;
+eof->prev=0;
 sprintf(eof->line, "[END DOCUMENT]");
 
  l_last=first;
@@ -248,9 +260,9 @@ sprintf(eof->line, "[END DOCUMENT]");
 main(int argn, char *argc[])
 {
 
-struct doc *new;
-struct doc *new1;
-struct doc *eof;
+struct line *new;
+struct line *new1;
+struct line *eof;
 int v=1;
 int off=0;
 int just=0;
@@ -356,7 +368,7 @@ getmaxyx(stdscr,max_y,max_x);
 		case KEY_LEFT: if(cur !=0 ) { (cur_x > 0)? cur_x--:cur_x;  if(ctrl !=0 )cur->ctl[cur_x+1]=ctrl; } break;
 		case KEY_RIGHT: if(cur!=0 ) { (cur_x< 80)? cur_x++:cur_x; if(ctrl !=0 )cur->ctl[cur_x-1]=ctrl; } break;
  		case CTRL('D'):  if (cur !=0 ){
-					struct doc *tmp=(cur ==first )? cur->next:cur->prev;	
+					struct line *tmp=(cur ==first )? cur->next:cur->prev;	
 					if(cur != first) v--;  
 					if (cur==vis) vis =vis->next;
 					Del_line(cur,&first,&last); 
