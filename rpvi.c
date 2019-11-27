@@ -107,6 +107,14 @@ Add_Char(struct line * this, char ch, char ctrl, int x)
 {
  int len=strlen(this->line);
  int to_move;
+
+ if((len+1)>=this->line_width) {
+	 this->line_width+=5;
+	 this->line=realloc(this->line,this->line_width);
+	 this->ctl=realloc(this->ctl,this->line_width*sizeof(long));
+	 memset(&this->line[x],0,5);
+	 memset(&this->ctl[x],0,5*sizeof(long));
+ }
  if (len < x) to_move=len; else to_move=len-x;
  
   if (to_move > 0) {
@@ -412,6 +420,7 @@ getmaxyx(stdscr,max_y,max_x);
 				  cur=new;
 				  new->header=parag;
 				  new->align=just;
+				  new->line_width=80;
 				
 				  cur_x=0;
 					if(v>=max_y-(off_s+2)) 
@@ -444,6 +453,7 @@ getmaxyx(stdscr,max_y,max_x);
                                   memset(new->line,0,80);
                                   new->ctl=realloc(NULL,80*sizeof(long));
                                   memset(new->ctl,0,80*sizeof(long));
+				  new->line_width=80;
                                   vis =cur=new;
                                   cur_x=0;
 			         } 	
@@ -480,7 +490,7 @@ getmaxyx(stdscr,max_y,max_x);
 			if(just == CENTER) off_x=(max_x-off-2)/2-strlen(cur->line)/2;
 		}
 		else cur_x=1;
-		mvprintw(max_y-1,0,"cursor: %d:%d [%s]    v:%d ctl:%x head: %d  max_y: %d  just: %d X:%d", cur_x, cur_y,keyname(r),v,ctrl,parag,max_y,just, cur_x+off+off_x+1);
+		mvprintw(max_y-1,0,"cursor: %d:%d [%s]    v:%d ctl:%x head: %d  max_y: %d  just: %d X:%d  %d", cur_x, cur_y,keyname(r),v,ctrl,parag,max_y,just, cur_x+off+off_x+1,cur->line_width);
 
 		move(v+1,cur_x+off+off_x+1);
 }
